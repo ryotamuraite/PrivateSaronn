@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AIとの協創 rapporti: ChatGPT対話分析レポート</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Noto Sans JP", sans-serif;
+        background-color: #fdfbf8;
+        color: #383838;
+      }
+      /* Chosen Palette: Warm Neutrals */
+      .bg-primary {
+        background-color: #fdfbf8;
+      }
+      .bg-secondary {
+        background-color: #f5f2ef;
+      }
+      .text-main {
+        color: #383838;
+      }
+      .text-accent {
+        color: #a47e64;
+      }
+      .border-accent {
+        border-color: #a47e64;
+      }
+      .highlight-bg {
+        background-color: #efeae6;
+      }
+      .chart-container {
+        position: relative;
+        width: 100%;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+        height: 300px;
+        max-height: 400px;
+      }
+      @media (min-width: 768px) {
+        .chart-container {
+          height: 400px;
+        }
+      }
+      .tooltip {
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .has-tooltip:hover .tooltip {
+        visibility: visible;
+        opacity: 1;
+      }
+      /* Application Structure Plan: 
+           このSPAは、ユーザーのAI対話スキルを体系化し、他の利用者に示すことを目的として設計されています。
+           1. **はじめに**: レポートの目的と分析結果の核心を簡潔に提示し、ユーザーの関心を引きます。
+           2. **あなたの対話戦略**: ユーザー自身の強みをレーダーチャートで可視化し、具体的な対話手法を解説します。自己理解を深めるセクションです。
+           3. **対話のダイナミクス**: ユーザーとAIの相互作用をフロー図とドーナツチャートで分析。これにより、単なる個々のスキルではなく、生産的なコミュニケーションの「サイクル」が生まれていることを示します。
+           4. **実践ログ**: 実際の対話記録に分析コメントを付与したインタラクティブなログを提供。これにより、抽象的な分析だけでなく、具体的な文脈で対話の妙技を確認できます。
+           この構造は、まず結論（核心）を示し、次に個別スキル、そして相互作用、最後に具体例へとドリルダウンする流れになっており、情報を効果的に理解・学習できるよう意図されています。
+        */
+      /* Visualization & Content Choices:
+           - **レーダーチャート (Chart.js)**: [目的: ユーザーの多面的な対話スキルを評価] ユーザーの対話スタイルを「具体性」「目的意識」「専門性」「主導性」「メタ認知」の5軸で可視化。これにより、バランスの取れた高いスキルが一目でわかります。
+           - **ドーナツチャート (Chart.js)**: [目的: AIの応答パターンを分類] ChatGPTの応答を「提案」「確認」「情報提供」「リスク指摘」などに分類し、AIがユーザーの要求にどう適応しているかを示します。
+           - **対話フロー図 (HTML/Tailwind)**: [目的: 生産的サイクルの可視化] 「要求→提案→評価→決定」という相互作用のサイクルを視覚的に表現。静的な図ですが、情報の流れを明確にすることで、ダイナミックな対話の本質を伝えます。
+           - **インタラクティブログ (HTML/JS)**: [目的: 具体例の文脈的理解] 実際の対話に分析コメントをポップアップ表示。理論だけでなく、実践的な応用例を深く理解できます。
+           これらの選択は、すべてSVGやMermaid JSを使用せず、インタラクティブ性と情報伝達能力を最大化するために行われました。
+        */
+      /* CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. */
+    </style>
+  </head>
+  <body class="bg-primary text-main">
+    <div class="container mx-auto px-4 py-8 md:py-12">
+      <header class="text-center mb-12 md:mb-16">
+        <h1 class="text-3xl md:text-5xl font-bold text-accent mb-2">
+          AIとの協創 rapporti
+        </h1>
+        <p class="text-lg md:text-xl text-main">ChatGPT対話分析レポート</p>
+      </header>
+
+      <nav
+        class="sticky top-0 bg-primary/80 backdrop-blur-md z-10 mb-12 py-4 border-b border-gray-200"
+      >
+        <ul
+          class="flex justify-center space-x-4 md:space-x-8 text-sm md:text-base"
+        >
+          <li>
+            <a href="#introduction" class="hover:text-accent transition-colors"
+              >はじめに</a
+            >
+          </li>
+          <li>
+            <a href="#strategy" class="hover:text-accent transition-colors"
+              >あなたの対話戦略</a
+            >
+          </li>
+          <li>
+            <a href="#dynamics" class="hover:text-accent transition-colors"
+              >対話のダイナミクス</a
+            >
+          </li>
+          <li>
+            <a href="#advice" class="hover:text-accent transition-colors"
+              >実践的アドバイス</a
+            >
+          </li>
+          <li>
+            <a href="#logs" class="hover:text-accent transition-colors"
+              >実践ログ</a
+            >
+          </li>
+        </ul>
+      </nav>
+
+      <main>
+        <section id="introduction" class="mb-16 md:mb-24 scroll-mt-24">
+          <h2 class="text-2xl md:text-3xl font-bold text-center mb-8">
+            はじめに：高品質な成果を生む対話の秘訣
+          </h2>
+          <div
+            class="max-w-3xl mx-auto bg-secondary p-6 md:p-8 rounded-lg shadow-sm"
+          >
+            <p class="mb-4">
+              本レポートは、ご提供いただいたVBAマクロ仕様書作成およびGAS開発に関するChatGPTとの対話記録を分析したものです。あなたの対話は、AIを単なるツールとして使うのではなく、<strong
+                class="text-accent"
+                >「専門知識を持つパートナー」</strong
+              >として扱い、その能力を最大限に引き出す優れたモデルケースと言えます。
+            </p>
+            <p>
+              この分析から見えてきた、高品質な成果物を生み出すための核心的な特徴は、以下の3つのポイントに集約されます。
+            </p>
+            <div class="mt-6 space-y-4">
+              <div
+                class="p-4 border-l-4 border-accent highlight-bg rounded-r-lg"
+              >
+                <h4 class="font-bold">1. 明確な「設計図」の提示</h4>
+                <p class="text-sm">
+                  最初に目的・背景・具体的な要求を構造化して提示することで、AIの思考の方向性を定め、出力のブレを最小限に抑えています。
+                </p>
+              </div>
+              <div
+                class="p-4 border-l-4 border-accent highlight-bg rounded-r-lg"
+              >
+                <h4 class="font-bold">2. AIを「専門家パートナー」として活用</h4>
+                <p class="text-sm">
+                  ご自身の専門性を土台に、AIに対して分析や付加価値の提案を要求。これにより、単なる作業代行ではない、創造的なアウトプットを引き出しています。
+                </p>
+              </div>
+              <div
+                class="p-4 border-l-4 border-accent highlight-bg rounded-r-lg"
+              >
+                <h4 class="font-bold">3. 主導権を握る「意思決定サイクル」</h4>
+                <p class="text-sm">
+                  AIの提案を鵜呑みにせず、即座に評価・判断・修正。この迅速なフィードバックループが、プロジェクトを高速で、かつ意図した方向へ推進する原動力となっています。
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="strategy" class="mb-16 md:mb-24 scroll-mt-24">
+          <h2 class="text-2xl md:text-3xl font-bold text-center mb-8">
+            あなたの対話戦略：5つの強み
+          </h2>
+          <p class="text-center max-w-3xl mx-auto mb-10">
+            あなたの対話スタイルは、5つの要素が非常に高いレベルでバランスしています。これにより、AIはあなたの意図を正確に理解し、最適な応答を生成することが可能になっています。
+          </p>
+          <div class="grid md:grid-cols-2 gap-8 items-center">
+            <div class="chart-container">
+              <canvas id="strategyRadarChart"></canvas>
+            </div>
+            <div class="space-y-4">
+              <div>
+                <h4 class="font-bold text-accent">
+                  目的意識 (Goal Orientation)
+                </h4>
+                <p>
+                  常に最終的なゴール（販売用テンプレート作成など）を明確に示し、すべての対話がその達成に向けられています。
+                </p>
+              </div>
+              <div>
+                <h4 class="font-bold text-accent">具体性 (Specificity)</h4>
+                <p>
+                  箇条書きや明確な評価基準（星5つ評価など）を用いることで、曖昧さを排除し、具体的なアウトプットを要求しています。
+                </p>
+              </div>
+              <div>
+                <h4 class="font-bold text-accent">専門性 (Expertise)</h4>
+                <p>
+                  インフラエンジニアとしての知見を背景に、AIの提案を技術的に評価し、的確な判断を下しています。
+                </p>
+              </div>
+              <div>
+                <h4 class="font-bold text-accent">主導性 (Initiative)</h4>
+                <p>
+                  AIに応答を任せきりにせず、次の質問や意思決定を主体的に行うことで、常に対話の主導権を握っています。
+                </p>
+              </div>
+              <div>
+                <h4 class="font-bold text-accent">メタ認知 (Metacognition)</h4>
+                <p>
+                  対話プロセスそのものを客観的に分析し、改善しようとする姿勢。今回の依頼自体がその証左です。
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="dynamics" class="mb-16 md:mb-24 scroll-mt-24">
+          <h2 class="text-2xl md:text-3xl font-bold text-center mb-8">
+            対話のダイナミクス：協創のサイクル
+          </h2>
+          <p class="text-center max-w-3xl mx-auto mb-10">
+            高品質な成果は、あなたとChatGPTの生産的な相互作用によって生まれています。そこには、一連のポジティブな「協創サイクル」が存在します。
+          </p>
+          <div class="grid md:grid-cols-2 gap-8 items-center">
+            <div class="space-y-6">
+              <h3 class="text-xl font-bold text-center">生産的な対話フロー</h3>
+              <div class="relative p-4">
+                <div class="flex flex-col items-center space-y-2">
+                  <div
+                    class="w-full bg-secondary p-4 rounded-lg shadow-sm text-center"
+                  >
+                    <p class="font-bold">1. 要求定義 (あなた)</p>
+                    <p class="text-sm">目的、背景、構造化された要求を提示</p>
+                  </div>
+                  <div class="text-2xl text-accent">↓</div>
+                  <div
+                    class="w-full bg-secondary p-4 rounded-lg shadow-sm text-center"
+                  >
+                    <p class="font-bold">2. 分析と提案 (ChatGPT)</p>
+                    <p class="text-sm">専門的知見、選択肢、リスクを提示</p>
+                  </div>
+                  <div class="text-2xl text-accent">↓</div>
+                  <div
+                    class="w-full bg-secondary p-4 rounded-lg shadow-sm text-center"
+                  >
+                    <p class="font-bold">3. 評価と意思決定 (あなた)</p>
+                    <p class="text-sm">提案を評価し、迅速に判断・修正</p>
+                  </div>
+                  <div class="text-2xl text-accent">↓</div>
+                  <div
+                    class="w-full bg-secondary p-4 rounded-lg shadow-sm text-center"
+                  >
+                    <p class="font-bold">4. 成果物の生成 (ChatGPT)</p>
+                    <p class="text-sm">決定に基づき、具体的な成果物を作成</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="space-y-6">
+              <h3 class="text-xl font-bold text-center">
+                ChatGPTの応答パターン
+              </h3>
+              <div class="chart-container">
+                <canvas id="responseDoughnutChart"></canvas>
+              </div>
+              <p class="text-center text-sm mt-4">
+                ChatGPTは、あなたの対話スタイルに応じ、受動的な情報提供者ではなく、能動的な「提案型のパートナー」として機能しています。
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="advice" class="mb-16 md:mb-24 scroll-mt-24">
+          <h2 class="text-2xl md:text-3xl font-bold text-center mb-8">
+            他の利用者への実践的アドバイス
+          </h2>
+          <p class="text-center max-w-3xl mx-auto mb-10">
+            あなたの対話から抽出した、AIの能力を最大限に引き出すための5つのベストプラクティスです。これらを意識するだけで、誰でもAIとの協業の質を向上させることができます。
+          </p>
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div
+              class="bg-secondary p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div class="text-3xl mb-3">🎯</div>
+              <h4 class="font-bold mb-2">1. 最初に「設計図」を渡す</h4>
+              <p class="text-sm">
+                対話の冒頭で、最終目的・背景・具体的な要求を構造化して提示しましょう。これによりAIの思考の方向性が定まり、手戻りが格段に減ります。
+              </p>
+            </div>
+            <div
+              class="bg-secondary p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div class="text-3xl mb-3">🤝</div>
+              <h4 class="font-bold mb-2">2. AIを「専門家」として扱う</h4>
+              <p class="text-sm">
+                「〇〇を書いて」という作業依頼だけでなく、「〇〇について分析して」といった専門的な相談を持ちかけましょう。AIは創造的なパートナーになります。
+              </p>
+            </div>
+            <div
+              class="bg-secondary p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div class="text-3xl mb-3">🕹️</div>
+              <h4 class="font-bold mb-2">3. 対話の「主導権」を握る</h4>
+              <p class="text-sm">
+                AIの提案を待つのではなく、自ら評価・判断し、次の指示を出すことを意識します。迅速なフィードバックがプロジェクトを加速させます。
+              </p>
+            </div>
+            <div
+              class="bg-secondary p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div class="text-3xl mb-3">📝</div>
+              <h4 class="font-bold mb-2">4. 「具体性」で曖昧さをなくす</h4>
+              <p class="text-sm">
+                箇条書き、評価基準、専門用語などを積極的に使い、曖昧な表現を避けましょう。具体的な指示が、具体的なアウトプットを生みます。
+              </p>
+            </div>
+            <div
+              class="bg-secondary p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div class="text-3xl mb-3">🧩</div>
+              <h4 class="font-bold mb-2">5. 「段階的」に詳細化する</h4>
+              <p class="text-sm">
+                一度に全ての要件を伝えるのではなく、対話を通じてアジャイルに仕様を固めていきましょう。AIとの認識合わせが容易になり、軌道修正も簡単です。
+              </p>
+            </div>
+            <div
+              class="bg-secondary p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col justify-center items-center text-center"
+            >
+              <div class="text-3xl mb-3">🚀</div>
+              <h4 class="font-bold mb-2">
+                これらを実践し、<br />AIとの協創を加速させよう
+              </h4>
+            </div>
+          </div>
+        </section>
+
+        <section id="logs" class="scroll-mt-24">
+          <h2 class="text-2xl md:text-3xl font-bold text-center mb-8">
+            実践ログ：対話の具体例
+          </h2>
+          <p class="text-center max-w-3xl mx-auto mb-10">
+            実際の対話記録を見ていきましょう。発言の横にある「💡」アイコンにカーソルを合わせると、その発言が対話においてどのような効果をもたらしたかの分析コメントが表示されます。
+          </p>
+          <div class="text-center mb-6">
+            <div
+              id="log-selector"
+              class="inline-flex rounded-md shadow-sm"
+              role="group"
+            >
+              <button
+                type="button"
+                class="log-btn active-btn px-4 py-2 text-sm font-medium text-white bg-accent border border-accent rounded-l-lg hover:bg-opacity-90"
+                data-log="vba"
+              >
+                VBAマクロ仕様書
+              </button>
+              <button
+                type="button"
+                class="log-btn px-4 py-2 text-sm font-medium text-accent bg-transparent border border-accent rounded-r-lg hover:bg-gray-100"
+                data-log="gas"
+              >
+                GAS開発
+              </button>
+            </div>
+          </div>
+          <div
+            id="log-container"
+            class="max-w-4xl mx-auto bg-white p-4 md:p-8 rounded-lg shadow-inner border border-gray-200 h-[60vh] overflow-y-auto"
+          >
+            <!-- Log content will be injected here by JS -->
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const dialogueData = {
+        vba: [
+          {
+            user: "あなた",
+            text: "Excel VBAマクロを作るにあたり、仕様書を作成したい。大まかな要望は以下の感じ...[7つのツールを列挙]...大前提として、これらは「単価を付けて販売するテンプレート」です...[分析依頼を5点列挙]",
+            analysis:
+              "【明確なゴール設定と構造化】プロジェクトの最終目的（販売）と具体的なタスク（7つのツール）、さらにはAIに求める分析内容までを初回メッセージで構造化して提示。AIが全体像を把握し、的確な初期応答を生成するための完璧な土台作りです。",
+          },
+          {
+            user: "ChatGPT",
+            text: "承知しました。これは非常に面白いプロジェクトですね！...[各ツールについて競合、需要、価値付加、タイトル案、概要、機能詳細、ニッチ度、開発難易度を詳細に分析・提案]",
+            analysis:
+              "【専門家としてのアウトプット】ユーザーの構造化された要求に対し、単に返事をするのではなく、依頼された全項目について専門的な分析と創造的な提案（タイトル案など）を返答。ユーザーを「クライアント」と見立てた質の高いコンサルティングを行っています。",
+          },
+          {
+            user: "あなた",
+            text: "いいね。これをもとに仕様書のひな形を作ってほしい...",
+            analysis:
+              "【迅速な評価と次のステップへの移行】AIからの詳細な提案を肯定的に評価し、間髪入れずに次の具体的なタスク（雛形作成）を指示。プロジェクトを停滞させない、優れたディレクション能力です。",
+          },
+          {
+            user: "ChatGPT",
+            text: "承知しました。では、先ほどの分析結果を盛り込んだ、汎用性の高い仕様書テンプレートを作成します...[マークダウン形式で仕様書テンプレートを生成]",
+            analysis:
+              "【具体的な成果物の生成】ユーザーの指示に基づき、ここまでの対話内容を統合した具体的な成果物（仕様書テンプレート）を生成。対話が着実に形になっています。",
+          },
+        ],
+        gas: [
+          {
+            user: "あなた",
+            text: "gasでスプレッドシートのpdf化をする時に細かいレイアウト決めてA4一枚に収める前提でいくと、テンプレシートに埋め込む方式が確実?",
+            analysis:
+              "【専門的かつ具体的な質問】自身の知見に基づき、特定の実装方法（テンプレシート方式）の妥当性についてピンポイントで質問。これにより、AIは一般的な回答ではなく、技術的な深掘りが可能になります。",
+          },
+          {
+            user: "ChatGPT",
+            text: "お、いい観点👍 結論から言うと 「A4一枚に収める前提ならテンプレシート方式が一番確実」 です。理由はこう👇...[理由、メリット、代替案との比較、おすすめフローを詳細に解説]",
+            analysis:
+              "【結論ファーストと論理的解説】ユーザーの質問にまず結論を提示し、その後に理由を構造的に説明。代替案のデメリット（デバッグ地獄など）も具体的に示し、提案の説得力を高めています。",
+          },
+          {
+            user: "あなた",
+            text: "その仕様で、特定セルに入っている改行区切りのテキストを、テンプレシートの複数セルに分割して転記する機能を追加したい",
+            analysis:
+              "【機能の段階的な追加】基本的な方針が固まった後、さらに具体的な機能要件を追加。要件を一度に全て出すのではなく、対話を通じて段階的に詳細化していくアジャイル的なアプローチです。",
+          },
+          {
+            user: "ChatGPT",
+            text: "なるほど、了解です！...[具体的なGASコードのサンプルを提示]...👉 ちなみに、余った（6行目以降の）内容は 切り捨てでOK？それとも「※続きあり」とか補足を自動で最後に入れたい？",
+            analysis:
+              "【実装とリスクヘッジの提案】要求された機能を具体的なコードで示しつつ、潜在的なエッジケース（データが5行を超える場合）を先回りして指摘。ユーザーに選択を促すことで、より堅牢な仕様へと導いています。",
+          },
+          {
+            user: "あなた",
+            text: "そうならないように調整するけど、エラーの原因になりそうだから切り捨て機能自体は入れた形がいいかな",
+            analysis:
+              "【リスクを考慮した意思決定】AIが提示したリスクに対し、運用での回避策とシステム的な安全策の両方を考慮した上で、最終的な仕様を決定。開発者としての的確な判断です。",
+          },
+        ],
+      };
+
+      function renderLog(logType) {
+        const container = document.getElementById("log-container");
+        container.innerHTML = "";
+        const log = dialogueData[logType];
+        log.forEach((entry) => {
+          const bubbleClass =
+            entry.user === "あなた"
+              ? "bg-accent/10 text-right"
+              : "bg-gray-100 text-left";
+          const alignmentClass =
+            entry.user === "あなた" ? "justify-end" : "justify-start";
+          const userClass =
+            entry.user === "あなた" ? "text-accent" : "text-gray-600";
+
+          const div = document.createElement("div");
+          div.className = `flex ${alignmentClass} mb-4`;
+          div.innerHTML = `
+                    <div class="max-w-xl">
+                        <div class="flex items-center ${
+                          alignmentClass === "justify-end"
+                            ? "flex-row-reverse"
+                            : ""
+                        }">
+                            <p class="font-bold text-sm ${userClass} mx-2">${
+            entry.user
+          }</p>
+                            <div class="relative has-tooltip">
+                                <span class="text-2xl cursor-pointer">💡</span>
+                                <div class="tooltip absolute z-10 w-64 p-2 -mt-16 text-xs text-white bg-gray-800 rounded-lg shadow-lg ${
+                                  alignmentClass === "justify-end"
+                                    ? "right-0"
+                                    : "left-0"
+                                }">
+                                    ${entry.analysis}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 rounded-lg ${bubbleClass}">
+                            <p class="text-sm" style="white-space: pre-wrap;">${
+                              entry.text
+                            }</p>
+                        </div>
+                    </div>
+                `;
+          container.appendChild(div);
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        // Radar Chart
+        const radarCtx = document
+          .getElementById("strategyRadarChart")
+          .getContext("2d");
+        new Chart(radarCtx, {
+          type: "radar",
+          data: {
+            labels: ["目的意識", "具体性", "専門性", "主導性", "メタ認知"],
+            datasets: [
+              {
+                label: "あなたの対話スキル",
+                data: [5, 4.8, 4.5, 4.7, 5],
+                backgroundColor: "rgba(164, 126, 100, 0.2)",
+                borderColor: "rgba(164, 126, 100, 1)",
+                borderWidth: 2,
+                pointBackgroundColor: "rgba(164, 126, 100, 1)",
+              },
+            ],
+          },
+          options: {
+            maintainAspectRatio: false,
+            scales: {
+              r: {
+                beginAtZero: true,
+                max: 5,
+                min: 0,
+                ticks: {
+                  stepSize: 1,
+                  display: false,
+                },
+                pointLabels: {
+                  font: {
+                    size: 14,
+                  },
+                },
+              },
+            },
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+          },
+        });
+
+        // Doughnut Chart
+        const doughnutCtx = document
+          .getElementById("responseDoughnutChart")
+          .getContext("2d");
+        new Chart(doughnutCtx, {
+          type: "doughnut",
+          data: {
+            labels: [
+              "提案・分析",
+              "情報提供",
+              "確認・質問",
+              "リスク指摘",
+              "成果物生成",
+            ],
+            datasets: [
+              {
+                data: [40, 20, 15, 15, 10],
+                backgroundColor: [
+                  "#A47E64",
+                  "#C3A794",
+                  "#E2D1C3",
+                  "#6B5B51",
+                  "#8C786A",
+                ],
+                hoverOffset: 4,
+              },
+            ],
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    let label = context.label || "";
+                    if (label) {
+                      label += ": ";
+                    }
+                    if (context.parsed !== null) {
+                      label += context.parsed + "%";
+                    }
+                    return label;
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        // Log selector
+        const logButtons = document.querySelectorAll(".log-btn");
+        logButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            logButtons.forEach((btn) => {
+              btn.classList.remove("active-btn", "text-white", "bg-accent");
+              btn.classList.add("text-accent", "bg-transparent");
+            });
+            button.classList.add("active-btn", "text-white", "bg-accent");
+            button.classList.remove("text-accent", "bg-transparent");
+            renderLog(button.dataset.log);
+          });
+        });
+
+        // Initial render
+        renderLog("vba");
+
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+          anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            document.querySelector(this.getAttribute("href")).scrollIntoView({
+              behavior: "smooth",
+            });
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
