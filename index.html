@@ -341,22 +341,20 @@
             実際の対話記録を見ていきましょう。発言の横にある「💡」アイコンにカーソルを合わせると、その発言が対話においてどのような効果をもたらしたかの分析コメントが表示されます。
           </p>
           <div class="text-center mb-6">
-            <div
-              id="log-selector"
-              class="inline-flex rounded-md shadow-sm"
-              role="group"
-            >
+            <div id="log-selector" class="inline-flex rounded-md shadow-sm" role="group">
               <button
                 type="button"
-                class="log-btn active-btn px-4 py-2 text-sm font-medium text-black bg-accent border border-accent rounded-l-lg hover:bg-opacity-90"
+                class="log-btn px-4 py-2 text-sm font-medium rounded-l-lg border border-accent bg-accent text-black hover:bg-accent/90"
                 data-log="vba"
+                onclick="setActiveLog(this)"
               >
                 VBAマクロ仕様書
               </button>
               <button
                 type="button"
-                class="log-btn px-4 py-2 text-sm font-medium text-accent bg-transparent border border-accent rounded-r-lg hover:bg-gray-100"
+                class="log-btn px-4 py-2 text-sm font-medium rounded-r-lg border border-accent bg-transparent text-accent hover:bg-gray-100"
                 data-log="gas"
+                onclick="setActiveLog(this)"
               >
                 GAS開発
               </button>
@@ -434,6 +432,30 @@
         ],
       };
 
+      function setActiveLog(button) {
+        const buttons = document.querySelectorAll(".log-btn");
+        buttons.forEach((btn) => {
+          if (btn === button) {
+            // アクティブ状態のスタイル
+            btn.classList.remove("bg-transparent", "text-accent", "hover:bg-gray-100");
+            btn.classList.add("bg-accent", "text-black", "shadow-md");
+          } else {
+            // 非アクティブ状態のスタイル
+            btn.classList.remove("bg-accent", "text-black", "shadow-md");
+            btn.classList.add("bg-transparent", "text-accent", "hover:bg-gray-100");
+          }
+        });
+    
+        // ログ内容をレンダリング
+        renderLog(button.dataset.log);
+      }
+    
+      // 初期表示
+      document.addEventListener("DOMContentLoaded", () => {
+        const firstBtn = document.querySelector(".log-btn");
+        if (firstBtn) setActiveLog(firstBtn);
+      });
+      
       function renderLog(logType) {
         const container = document.getElementById("log-container");
         container.innerHTML = "";
@@ -610,4 +632,5 @@
     </script>
   </body>
 </html>
+
 
