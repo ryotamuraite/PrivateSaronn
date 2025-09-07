@@ -23,11 +23,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'  # ← ここを18から20に変更
       
       - name: Install dependencies
         run: |
-          npm install cheerio
+          npm install cheerio@1.0.0-rc.12
       
       - name: Extract HTML metadata
         run: |
