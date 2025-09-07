@@ -123,11 +123,13 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          # 変更があるかチェック
-          if git diff --quiet; then
+          # 変更をステージ
+          git add documents/metadata.json
+          
+          # 変更があるかチェック（git statusを使う）
+          if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git add documents/metadata.json
             git commit -m "🔄 Auto-update document metadata"
             git push
           fi
