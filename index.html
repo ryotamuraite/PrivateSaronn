@@ -163,11 +163,23 @@
             margin-bottom: 0.5rem;
         }
 
+        .document-description {
+            color: #6b5d54;
+            font-size: 0.95rem;
+            margin-bottom: 0.8rem;
+            line-height: 1.4;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
         .document-meta {
             color: #6b5d54;
             font-size: 0.9rem;
             display: flex;
             gap: 1rem;
+            flex-wrap: wrap;
         }
 
         .empty-state {
@@ -228,7 +240,7 @@
     <div class="container">
         <header>
             <h1><span class="coffee-icon">☕</span> Document Café</h1>
-            <p class="subtitle">~ Your cozy corner for shared documents ~</p>
+            <p class="subtitle">~ Ryo Tamura's personal document sharing space ~</p>
         </header>
 
         <main id="content">
@@ -286,12 +298,20 @@
             });
         }
 
-        // ファイル名を整形
+        // ファイル名を整形（日本語対応）
         function formatTitle(filename) {
-            return filename
-                .replace(/\.[^/.]+$/, '')
-                .replace(/[-_]/g, ' ')
-                .replace(/\b\w/g, l => l.toUpperCase());
+            // まずは拡張子を除去
+            let title = filename.replace(/\.[^/.]+$/, '');
+            
+            // アンダースコアやハイフンを処理
+            title = title.replace(/[-_]/g, ' ');
+            
+            // 日本語が含まれている場合はそのまま、英語のみなら各単語を大文字に
+            if (/[^\x00-\x7F]/.test(title)) {
+                return title;
+            } else {
+                return title.replace(/\b\w/g, l => l.toUpperCase());
+            }
         }
 
         // ドキュメント一覧を取得して表示
@@ -332,6 +352,8 @@
 
                 const files = await response.json();
                 
+                console.log('Files data:', files);
+                
                 // HTMLファイルのみフィルタ
                 const htmlFiles = files.filter(file => 
                     file.type === 'file' && 
@@ -352,17 +374,47 @@
                     return;
                 }
 
+                // メタデータを取得
+                let metadata = {};
+                try {
+                    const metadataUrl = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.folder}/metadata.json?ref=${CONFIG.branch}`;
+                    const metadataResponse = await fetch(metadataUrl, {
+                        headers: {
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (metadataResponse.ok) {
+                        const metadataFile = await metadataResponse.json();
+                        // Base64デコード
+                        const metadataContent = atob(metadataFile.content);
+                        metadata = JSON.parse(metadataContent);
+                        console.log('Metadata loaded:', metadata);
+                    }
+                } catch (e) {
+                    console.log('Could not load metadata.json:', e);
+                }
+
                 // ドキュメントカードを生成
                 const cardsHTML = htmlFiles.map(file => {
                     const fileUrl = `https://${CONFIG.owner}.github.io/${CONFIG.repo}/${CONFIG.folder}/${file.name}`;
                     
+                    // メタデータから情報を取得（なければデフォルト値）
+                    const fileMetadata = metadata[file.name] || {};
+                    const title = fileMetadata.title || formatTitle(file.name);
+                    const description = fileMetadata.description || '';
+                    const lastModified = fileMetadata.lastModified || null;
+                    const author = fileMetadata.author || '';
+                    
                     return `
                         <a href="${fileUrl}" class="document-card" target="_blank">
                             <div class="document-icon">${getFileIcon(file.name)}</div>
-                            <div class="document-title">${formatTitle(file.name)}</div>
+                            <div class="document-title">${title}</div>
+                            ${description ? `<div class="document-description">${description}</div>` : ''}
                             <div class="document-meta">
-                                <span>📅 ${formatDate(file.last_modified)}</span>
+                                <span>📅 ${formatDate(lastModified)}</span>
                                 <span>💾 ${formatFileSize(file.size)}</span>
+                                ${author ? `<span>✍️ ${author}</span>` : ''}
                             </div>
                         </a>
                     `;
