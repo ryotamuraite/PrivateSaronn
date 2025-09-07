@@ -391,21 +391,35 @@
                 let metadata = {};
                 try {
                     const metadataUrl = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.folder}/metadata.json?ref=${CONFIG.branch}`;
+                    console.log('Fetching metadata from:', metadataUrl);
                     const metadataResponse = await fetch(metadataUrl, {
                         headers: {
                             'Accept': 'application/vnd.github.v3+json'
                         }
                     });
                     
+                    console.log('Metadata response status:', metadataResponse.status);
+                    
                     if (metadataResponse.ok) {
                         const metadataFile = await metadataResponse.json();
-                        // Base64デコード
-                        const metadataContent = atob(metadataFile.content);
+                        
+                        // UTF-8対応のBase64デコード
+                        const base64 = metadataFile.content.replace(/\n/g, '');
+                        const binaryString = atob(base64);
+                        const bytes = new Uint8Array(binaryString.length);
+                        for (let i = 0; i < binaryString.length; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+                        const decoder = new TextDecoder('utf-8');
+                        const metadataContent = decoder.decode(bytes);
+                        
                         metadata = JSON.parse(metadataContent);
-                        console.log('Metadata loaded:', metadata);
+                        console.log('Metadata loaded successfully:', metadata);
+                    } else {
+                        console.log('Metadata not found or error:', metadataResponse.status);
                     }
                 } catch (e) {
-                    console.log('Could not load metadata.json:', e);
+                    console.error('Error loading metadata.json:', e);
                 }
 
                 // ドキュメントカードを生成
