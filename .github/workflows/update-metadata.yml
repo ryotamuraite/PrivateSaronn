@@ -1,1 +1,133 @@
+name: Update Document Metadata
 
+on:
+  push:
+    paths:
+      - 'documents/*.html'
+      - 'documents/*.htm'
+  workflow_dispatch: # 手動実行も可能にしておく
+
+jobs:
+  extract-metadata:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: |
+          npm install cheerio
+      
+      - name: Extract HTML metadata
+        run: |
+          node << 'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const cheerio = require('cheerio');
+          
+          // documentsフォルダのパス
+          const docsDir = path.join(process.cwd(), 'documents');
+          const metadataFile = path.join(docsDir, 'metadata.json');
+          
+          // 既存のメタデータを読み込む（なければ空オブジェクト）
+          let metadata = {};
+          if (fs.existsSync(metadataFile)) {
+            try {
+              metadata = JSON.parse(fs.readFileSync(metadataFile, 'utf-8'));
+            } catch (e) {
+              console.log('既存のmetadata.jsonの読み込みに失敗。新規作成します。');
+            }
+          }
+          
+          // HTMLファイルを取得
+          const htmlFiles = fs.readdirSync(docsDir)
+            .filter(file => file.endsWith('.html') || file.endsWith('.htm'));
+          
+          console.log(`Found ${htmlFiles.length} HTML files`);
+          
+          // 各HTMLファイルからメタデータを抽出
+          htmlFiles.forEach(file => {
+            const filePath = path.join(docsDir, file);
+            const content = fs.readFileSync(filePath, 'utf-8');
+            const $ = cheerio.load(content);
+            
+            // タイトルを取得（複数の方法を試す）
+            let title = $('title').text().trim() || 
+                       $('h1').first().text().trim() || 
+                       $('meta[property="og:title"]').attr('content') ||
+                       file.replace(/\.[^/.]+$/, '');
+            
+            // 説明を取得
+            let description = $('meta[name="description"]').attr('content') || 
+                            $('meta[property="og:description"]').attr('content') || 
+                            '';
+            
+            // 作成者を取得
+            let author = $('meta[name="author"]').attr('content') || '';
+            
+            // ファイルの統計情報を取得
+            const stats = fs.statSync(filePath);
+            
+            // メタデータを更新（既存のデータがあれば更新日時のみ更新）
+            if (metadata[file]) {
+              metadata[file].title = title;
+              metadata[file].description = description;
+              metadata[file].author = author || metadata[file].author;
+              metadata[file].lastModified = stats.mtime.toISOString();
+              metadata[file].size = stats.size;
+            } else {
+              metadata[file] = {
+                title: title,
+                description: description,
+                author: author,
+                created: stats.birthtime.toISOString(),
+                lastModified: stats.mtime.toISOString(),
+                size: stats.size
+              };
+            }
+            
+            console.log(`Processed: ${file} -> "${title}"`);
+          });
+          
+          // 存在しないファイルのエントリを削除
+          Object.keys(metadata).forEach(file => {
+            if (!htmlFiles.includes(file)) {
+              delete metadata[file];
+              console.log(`Removed: ${file} (file no longer exists)`);
+            }
+          });
+          
+          // メタデータをJSON形式で保存
+          fs.writeFileSync(
+            metadataFile, 
+            JSON.stringify(metadata, null, 2),
+            'utf-8'
+          );
+          
+          console.log('Metadata updated successfully!');
+          EOF
+      
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # 変更があるかチェック
+          if git diff --quiet; then
+            echo "No changes to commit"
+          else
+            git add documents/metadata.json
+            git commit -m "🔄 Auto-update document metadata"
+            git push
+          fi
