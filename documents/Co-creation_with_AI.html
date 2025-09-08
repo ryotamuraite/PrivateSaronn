@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIとつくるカフェ・ラウンジ - 対話フローガイド</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --coffee-dark: #3E2723;
+            --coffee-medium: #5D4037;
+            --coffee-light: #795548;
+            --milk-foam: #FFF8E1;
+            --milk-white: #FFFDF7;
+            --caramel: #D7CCC8;
+            --mocha: #6F4E37;
+            --cream: #F5E6D3;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'M PLUS Rounded 1c', 'Klee One', sans-serif;
+            background: linear-gradient(135deg, var(--milk-foam) 0%, var(--cream) 100%);
+            color: var(--coffee-dark);
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cfilter id='roughPaper'%3E%3CfeTurbulence baseFrequency='0.04' numOctaves='5' result='noise' /%3E%3CfeDiffuseLighting in='noise' lighting-color='white' surfaceScale='2'%3E%3CfeDistantLight azimuth='45' elevation='60' /%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3C/defs%3E%3Crect width='100' height='100' filter='url(%23roughPaper)' opacity='0.02' /%3E%3C/svg%3E");
+            pointer-events: none;
+            opacity: 0.3;
+            z-index: 0;
+        }
+        
+        main {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .coffee-stain {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle, transparent 30%, rgba(111, 78, 55, 0.05) 70%);
+            pointer-events: none;
+        }
+        
+        .coffee-card {
+            background: var(--milk-white);
+            border-radius: 20px;
+            box-shadow: 
+                0 4px 6px rgba(62, 39, 35, 0.1),
+                0 1px 3px rgba(62, 39, 35, 0.08);
+            border: 1px solid rgba(215, 204, 200, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .coffee-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--caramel), transparent, var(--caramel));
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+        
+        .coffee-card:hover::before {
+            opacity: 0.1;
+        }
+        
+        .flow-detail-container {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+        }
+        
+        .flow-panel {
+            flex: 1.1;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-right: 2rem;
+        }
+        
+        .detail-panel {
+            flex: 1.2;
+            padding-right: 1rem;
+        }
+        
+        .step-detail {
+            background: var(--milk-white);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 2px solid var(--caramel);
+            box-shadow: 0 2px 8px rgba(111, 78, 55, 0.1);
+            margin-bottom: 1.5rem;
+        }
+        
+        .step-detail h4 {
+            color: var(--mocha);
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+        
+        .example-bubble {
+            background: linear-gradient(135deg, var(--cream) 0%, var(--milk-white) 100%);
+            padding: 1rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--coffee-light);
+            margin-bottom: 1rem;
+        }
+        
+        .tip-bubble {
+            background: var(--milk-foam);
+            padding: 1rem;
+            border-radius: 15px;
+            position: relative;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            border: 1px solid var(--caramel);
+        }
+        
+        .tip-bubble::before {
+            content: '💭';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .chill-title {
+            font-family: 'Klee One', cursive;
+            color: var(--coffee-dark);
+            position: relative;
+            display: inline-block;
+        }
+        
+        .chill-title::after {
+            content: '☕';
+            position: absolute;
+            right: -30px;
+            top: 0;
+            opacity: 0.5;
+        }
+        
+        .coffee-button {
+            background: linear-gradient(135deg, var(--coffee-light), var(--mocha));
+            color: var(--milk-white);
+            padding: 0.75rem 2rem;
+            border-radius: 25px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(62, 39, 35, 0.2);
+        }
+        
+        .coffee-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(62, 39, 35, 0.3);
+        }
+        
+        /* レスポンシブ対応 */
+        @media (max-width: 1024px) {
+            .flow-detail-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .flow-panel {
+                flex: 1;
+                padding-right: 0;
+                margin-bottom: 3rem;
+                display: flex;
+                justify-content: center;
+            }
+            
+            .flow-panel svg {
+                max-width: 90%;
+                height: auto;
+            }
+            
+            .detail-panel {
+                max-width: 600px;
+                padding-right: 0;
+                margin: 0 auto;
+            }
+            
+            .step-detail {
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
+        
+        /* アニメーション */
+        @keyframes steam {
+            0% { transform: translateY(0) scale(1); opacity: 0.8; }
+            100% { transform: translateY(-20px) scale(1.5); opacity: 0; }
+        }
+        
+        .steam {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.8), transparent);
+            border-radius: 50%;
+            animation: steam 3s infinite;
+        }
+        
+        .handwritten {
+            font-family: 'Klee One', cursive;
+            font-weight: 600;
+        }
+        
+        /* フロー図のスタイル */
+        .flow-path {
+            stroke: var(--coffee-medium);
+            stroke-width: 3;
+            fill: none;
+            stroke-dasharray: 5, 5;
+            animation: dash 20s linear infinite;
+        }
+        
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -100;
+            }
+        }
+        
+        .flow-node {
+            filter: drop-shadow(0 4px 6px rgba(62, 39, 35, 0.1));
+        }
+        
+        .flow-text {
+            fill: var(--coffee-dark);
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            font-weight: 600;
+        }
+        
+        .step-number {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            background: var(--coffee-light);
+            color: var(--milk-white);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 28px;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- コーヒーステイン装飾 -->
+    <div class="coffee-stain" style="top: 10%; left: 5%;"></div>
+    <div class="coffee-stain" style="top: 60%; right: 10%;"></div>
+    <div class="coffee-stain" style="bottom: 15%; left: 15%;"></div>
+
+    <!-- ヘッダー -->
+    <header class="relative overflow-hidden" style="background: linear-gradient(135deg, var(--coffee-dark) 0%, var(--mocha) 100%);">
+        <div class="steam" style="bottom: 10px; left: 20%;"></div>
+        <div class="steam" style="bottom: 20px; right: 30%; animation-delay: 1s;"></div>
+        <div class="steam" style="bottom: 5px; left: 60%; animation-delay: 2s;"></div>
+        
+        <div class="container mx-auto text-center py-12 px-4 relative z-10">
+            <h1 class="text-4xl md:text-5xl font-bold mb-3 handwritten" style="color: var(--milk-white);">
+                ☕ AIとつくるカフェ・ラウンジ
+            </h1>
+            <p class="text-lg opacity-95" style="color: var(--milk-foam);">
+                ゆったりとした対話で、あなたのアイデアを一緒にカタチに
+            </p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- イントロ -->
+        <section class="mb-12">
+            <div class="coffee-card p-8">
+                <h2 class="chill-title text-2xl mb-4">まずは深呼吸、そして一杯のコーヒーを</h2>
+                <p class="text-lg leading-relaxed" style="color: var(--coffee-medium);">
+                    AIとの対話は、カフェでの友人との会話のようなもの。<br>
+                    焦らず、ゆっくりと、お互いを理解しながら進めていきましょう。<br>
+                    左側のフローを見ながら、右側の詳しい説明で進め方を確認できます。
+                </p>
+            </div>
+        </section>
+
+        <!-- メインフロー（左右分割） -->
+        <section class="mb-12">
+            <div class="coffee-card p-6">
+                <h2 class="chill-title text-2xl mb-8 text-center">対話のレシピ</h2>
+                
+                <div class="flow-detail-container">
+                    <!-- 左側：フロー図 -->
+                    <div class="flow-panel">
+                        <svg viewBox="0 0 700 1370" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: auto;">
+                            <!-- 背景の流れるパス（修正版） -->
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+                                    <polygon points="0 0, 10 3, 0 6" fill="var(--coffee-medium)"/>
+                                </marker>
+                            </defs>
+                            
+                            <!-- 開始 -->
+                            <g class="flow-node" transform="translate(350, 70)">
+                                <ellipse cx="0" cy="0" rx="90" ry="45" fill="var(--milk-foam)" stroke="var(--coffee-medium)" stroke-width="4"/>
+                                <text x="0" y="8" text-anchor="middle" class="flow-text" font-size="24">はじまり</text>
+                            </g>
+                            
+                            <!-- 矢印 -->
+                            <path d="M 350 115 L 350 180" stroke="var(--coffee-medium)" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+                            
+                            <!-- ステップ1 -->
+                            <g class="flow-node" transform="translate(350, 240)">
+                                <rect x="-140" y="-55" width="280" height="110" rx="15" fill="var(--cream)" stroke="var(--coffee-medium)" stroke-width="4"/>
+                                <circle cx="-105" cy="-25" r="20" fill="var(--coffee-light)"/>
+                                <text x="-105" y="-18" text-anchor="middle" fill="white" font-size="18" font-weight="bold">1</text>
+                                <text x="0" y="-8" text-anchor="middle" class="flow-text" font-size="22">背景とゴールを</text>
+                                <text x="0" y="20" text-anchor="middle" class="flow-text" font-size="22">カジュアルに共有</text>
+                            </g>
+                            
+                            <!-- 矢印 -->
+                            <path d="M 350 295 L 350 360" stroke="var(--coffee-medium)" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+                            
+                            <!-- ステップ2 -->
+                            <g class="flow-node" transform="translate(350, 420)">
+                                <rect x="-140" y="-55" width="280" height="110" rx="15" fill="var(--cream)" stroke="var(--coffee-medium)" stroke-width="4"/>
+                                <circle cx="-105" cy="-25" r="20" fill="var(--coffee-light)"/>
+                                <text x="-105" y="-18" text-anchor="middle" fill="white" font-size="18" font-weight="bold">2</text>
+                                <text x="0" y="-8" text-anchor="middle" class="flow-text" font-size="22">AIからの</text>
+                                <text x="0" y="20" text-anchor="middle" class="flow-text" font-size="22">アイデアを味わう</text>
+                            </g>
+                            
+                            <!-- 矢印 -->
+                            <path d="M 350 475 L 350 540" stroke="var(--coffee-medium)" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+                            
+                            <!-- 分岐1 -->
+                            <g class="flow-node" transform="translate(350, 600)">
+                                <path d="M 0 -65 L 120 0 L 0 65 L -120 0 Z" fill="var(--milk-foam)" stroke="var(--mocha)" stroke-width="4"/>
+                                <text x="0" y="5" text-anchor="middle" class="flow-text" font-size="22">いい感じ？</text>
+                            </g>
+                            
+                            <!-- YESの矢印 -->
+                            <path d="M 470 600 L 550 600 L 550 740 L 490 740" stroke="var(--coffee-medium)" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+                            <text x="510" y="590" class="flow-text" font-size="18" fill="var(--coffee-light)">Yes</text>
+                            
+                            <!-- NOの矢印（ループバック） -->
+                            <path d="M 230 600 L 150 600 L 150 420 L 210 420" stroke="var(--coffee-medium)" stroke-width="3" stroke-dasharray="4, 4" fill="none" marker-end="url(#arrowhead)"/>
+                            <text x="190" y="590" class="flow-text" font-size="18" fill="var(--coffee-light)">No</text>
+                            
+                            <!-- ステップ3 -->
+                            <g class="flow-node" transform="translate(350, 780)">
+                                <rect x="-140" y="-55" width="280" height="110" rx="15" fill="var(--cream)" stroke="var(--coffee-medium)" stroke-width="4"/>
+                                <circle cx="-105" cy="-25" r="20" fill="var(--coffee-light)"/>
+                                <text x="-105" y="-18" text-anchor="middle" fill="white" font-size="18" font-weight="bold">3</text>
+                                <text x="0" y="-8" text-anchor="middle" class="flow-text" font-size="22">一緒に</text>
+                                <text x="0" y="20" text-anchor="middle" class="flow-text" font-size="22">カタチにしていく</text>
+                            </g>
+                            
+                            <!-- 矢印 -->
+                            <path d="M 350 835 L 350 900" stroke="var(--coffee-medium)" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+                            
+                            <!-- ステップ4 -->
+                            <g class="flow-node" transform="translate(350, 960)">
+                                <rect x="-140" y="-55" width="280" height="110" rx="15" fill="var(--cream)" stroke="var(--coffee-medium)" stroke-width="4"/>
+                                <circle cx="-105" cy="-25" r="20" fill="var(--coffee-light)"/>
+                                <text x="-105" y="-18" text-anchor="middle" fill="white" font-size="18" font-weight="bold">4</text>
+                                <text x="0" y="-8" text-anchor="middle" class="flow-text" font-size="22">試して</text>
+                                <text x="0" y="20" text-anchor="middle" class="flow-text" font-size="22">フィードバック</text>
+                            </g>
+                            
+                            <!-- 矢印 -->
+                            <path d="M 350 1015 L 350 1080" stroke="var(--coffee-medium)" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+                            
+                            <!-- 分岐2 -->
+                            <g class="flow-node" transform="translate(350, 1140)">
+                                <path d="M 0 -65 L 120 0 L 0 65 L -120 0 Z" fill="var(--milk-foam)" stroke="var(--mocha)" stroke-width="4"/>
+                                <text x="0" y="5" text-anchor="middle" class="flow-text" font-size="22">満足？</text>
+                            </g>
+                            
+                            <!-- YESの矢印（下へ） -->
+                            <path d="M 350 1205 L 350 1270" stroke="var(--coffee-medium)" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+                            <text x="380" y="1235" class="flow-text" font-size="18" fill="var(--coffee-light)">Yes</text>
+                            
+                            <!-- NOの矢印（大きなループバック） -->
+                            <path d="M 230 1140 L 100 1140 L 100 240 L 210 240" stroke="var(--coffee-medium)" stroke-width="3" stroke-dasharray="4, 4" fill="none" marker-end="url(#arrowhead)"/>
+                            <text x="190" y="1130" class="flow-text" font-size="18" fill="var(--coffee-light)">No</text>
+                            
+                            <!-- 完成 -->
+                            <g class="flow-node" transform="translate(350, 1320)">
+                                <ellipse cx="0" cy="0" rx="90" ry="45" fill="var(--milk-foam)" stroke="var(--coffee-medium)" stroke-width="4"/>
+                                <text x="0" y="8" text-anchor="middle" class="flow-text" font-size="24">完成！🎉</text>
+                            </g>
+                        </svg>
+                    </div>
+                    
+                    <!-- 右側：詳細説明 -->
+                    <div class="detail-panel">
+                        <!-- ステップ1の詳細 -->
+                        <div class="step-detail">
+                            <h3 class="handwritten text-xl mb-4" style="color: var(--mocha);">
+                                <span class="step-number">1</span>背景とゴールをカジュアルに共有
+                            </h3>
+                            
+                            <div class="example-bubble">
+                                <h4>💬 こんな感じで話しかけて</h4>
+                                <p class="text-sm">
+                                    「最近、〇〇で困ってて...」<br>
+                                    「もっと楽に△△できないかな？」<br>
+                                    「こんなことができたらいいのに」
+                                </p>
+                            </div>
+                            
+                            <div class="tip-bubble">
+                                完璧じゃなくてOK！思いつくまま話してみよう。<br>
+                                背景・現状・スキルレベルを伝えると、AIは最適な提案ができます。
+                            </div>
+                        </div>
+                        
+                        <!-- ステップ2の詳細 -->
+                        <div class="step-detail">
+                            <h3 class="handwritten text-xl mb-4" style="color: var(--mocha);">
+                                <span class="step-number">2</span>AIからのアイデアを味わう
+                            </h3>
+                            
+                            <div class="example-bubble">
+                                <h4>💬 深掘りしてみよう</h4>
+                                <p class="text-sm">
+                                    「その2番目の方法、もう少し詳しく」<br>
+                                    「初心者でもできそう？」<br>
+                                    「他にも方法ある？」
+                                </p>
+                            </div>
+                            
+                            <div class="tip-bubble">
+                                気になることは遠慮なく聞いちゃおう。<br>
+                                複数の選択肢を比較して、自分に合った方法を選ぼう。
+                            </div>
+                        </div>
+                        
+                        <!-- 判断ポイント1 -->
+                        <div class="step-detail" style="background: linear-gradient(135deg, var(--milk-foam), var(--cream));">
+                            <h3 class="handwritten text-lg mb-3" style="color: var(--coffee-dark);">
+                                🤔 判断ポイント：いい感じ？
+                            </h3>
+                            <p class="text-sm mb-2">
+                                <strong>Yes →</strong> 次のステップへ進もう<br>
+                                <strong>No →</strong> 何が違うか具体的に伝えて、別の提案をもらおう
+                            </p>
+                            <p class="text-sm" style="color: var(--coffee-medium);">
+                                例：「もっと初心者向けの方法はある？」
+                            </p>
+                        </div>
+                        
+                        <!-- ステップ3の詳細 -->
+                        <div class="step-detail">
+                            <h3 class="handwritten text-xl mb-4" style="color: var(--mocha);">
+                                <span class="step-number">3</span>一緒にカタチにしていく
+                            </h3>
+                            
+                            <div class="example-bubble">
+                                <h4>💬 具体的にお願い</h4>
+                                <p class="text-sm">
+                                    「じゃあ、まず最初の部分から」<br>
+                                    「実際のコード見せて」<br>
+                                    「この部分をもっとシンプルに」
+                                </p>
+                            </div>
+                            
+                            <div class="tip-bubble">
+                                小さく始めて、少しずつ完成させよう。<br>
+                                一度に全部じゃなくてOK、段階的に進めるのがコツ。
+                            </div>
+                        </div>
+                        
+                        <!-- ステップ4の詳細 -->
+                        <div class="step-detail">
+                            <h3 class="handwritten text-xl mb-4" style="color: var(--mocha);">
+                                <span class="step-number">4</span>試してフィードバック
+                            </h3>
+                            
+                            <div class="example-bubble">
+                                <h4>💬 結果を共有</h4>
+                                <p class="text-sm">
+                                    「動いた！でも〇〇が...」<br>
+                                    「エラーが出た。これどういう意味？」<br>
+                                    「うまくいった！次は△△もできる？」
+                                </p>
+                            </div>
+                            
+                            <div class="tip-bubble">
+                                うまくいかなくても大丈夫。<br>
+                                エラーや問題点を共有すれば、AIが解決策を提案してくれます。
+                            </div>
+                        </div>
+                        
+                        <!-- 判断ポイント2 -->
+                        <div class="step-detail" style="background: linear-gradient(135deg, var(--milk-foam), var(--cream));">
+                            <h3 class="handwritten text-lg mb-3" style="color: var(--coffee-dark);">
+                                🎯 判断ポイント：満足？
+                            </h3>
+                            <p class="text-sm mb-2">
+                                <strong>Yes →</strong> 完成！AIに感謝を伝えよう<br>
+                                <strong>No →</strong> 最初から見直すか、部分的に改善するか決めよう
+                            </p>
+                            <p class="text-sm" style="color: var(--coffee-medium);">
+                                8割できたらまず使ってみて、後から改善するのもアリ！
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Coffee Break セクション -->
+        <section class="mb-12">
+            <div class="coffee-card p-8" style="background: linear-gradient(135deg, var(--cream) 0%, var(--milk-foam) 100%);">
+                <h2 class="chill-title text-2xl mb-6 text-center">☕ Coffee Break Tips</h2>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white/80 p-6 rounded-xl">
+                        <h3 class="handwritten text-lg mb-3" style="color: var(--mocha);">うまくいかない時は...</h3>
+                        <ul class="text-sm space-y-2" style="color: var(--coffee-medium);">
+                            <li>🔄 別の角度から質問してみる</li>
+                            <li>📝 具体例を追加してみる</li>
+                            <li>🎯 ゴールを小さくしてみる</li>
+                            <li>☕ 一旦休憩して、また後で</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-white/80 p-6 rounded-xl">
+                        <h3 class="handwritten text-lg mb-3" style="color: var(--mocha);">覚えておきたいこと</h3>
+                        <ul class="text-sm space-y-2" style="color: var(--coffee-medium);">
+                            <li>💭 完璧じゃなくていい</li>
+                            <li>🌱 少しずつ成長する</li>
+                            <li>🤝 AIは味方</li>
+                            <li>✨ 楽しむことが大切</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- よくある質問 -->
+        <section class="mb-12">
+            <div class="coffee-card p-8">
+                <h2 class="chill-title text-2xl mb-6">よくある「あるある」と対処法</h2>
+                
+                <div class="space-y-4">
+                    <div class="bg-gradient-to-r from-transparent via-cream to-transparent p-4 rounded-xl">
+                        <p class="handwritten text-lg mb-2" style="color: var(--coffee-dark);">
+                            😅 「何から聞けばいいか分からない」
+                        </p>
+                        <p class="text-sm ml-8" style="color: var(--coffee-medium);">
+                            → 今困っていることをそのまま話してみよう。「Excelで毎日やってる作業があって...」みたいに。
+                        </p>
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-transparent via-cream to-transparent p-4 rounded-xl">
+                        <p class="handwritten text-lg mb-2" style="color: var(--coffee-dark);">
+                            🤔 「AIの答えが難しすぎる」
+                        </p>
+                        <p class="text-sm ml-8" style="color: var(--coffee-medium);">
+                            → 「もっと簡単に説明して」「初心者向けに」とリクエストしよう。
+                        </p>
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-transparent via-cream to-transparent p-4 rounded-xl">
+                        <p class="handwritten text-lg mb-2" style="color: var(--coffee-dark);">
+                            😰 「エラーが出て進めない」
+                        </p>
+                        <p class="text-sm ml-8" style="color: var(--coffee-medium);">
+                            → エラーメッセージをそのままコピペして、「これどういう意味？」と聞けばOK。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- まとめ -->
+        <section class="mb-12">
+            <div class="coffee-card p-10 text-center" style="background: radial-gradient(circle at center, var(--milk-foam), var(--cream));">
+                <h2 class="chill-title text-3xl mb-6">さあ、あなたのストーリーを始めよう</h2>
+                <p class="text-lg mb-8" style="color: var(--coffee-medium);">
+                    AIとの対話は、美味しいコーヒーを淹れるようなもの。<br>
+                    最初は苦いかもしれないけど、回を重ねるごとに<br>
+                    あなた好みの味が見つかるはず。
+                </p>
+                <button class="coffee-button">
+                    今すぐAIと話してみる ☕
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- フッター -->
+    <footer class="py-8 text-center" style="background: var(--coffee-dark); color: var(--milk-foam);">
+        <p class="handwritten text-lg mb-2">AIとつくるカフェ・ラウンジ</p>
+        <p class="text-sm opacity-80">ゆっくり、じっくり、一緒に創ろう</p>
+    </footer>
+</body>
+</html>
